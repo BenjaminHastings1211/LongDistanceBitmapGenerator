@@ -76,6 +76,7 @@ class ScreenBuilder:
         self.canvas_size = canvas_size
         self.image = Image.new("1", canvas_size, color=background)
         self.draw = ImageDraw.Draw(self.image)
+        self.inverted = False
 
     def text(self, content, pos, font=FALLBACK_FONT_NAME, size=24, anchor="mm", fill=0,
              max_width=None, min_size=8, step=2):
@@ -131,6 +132,11 @@ class ScreenBuilder:
         )
         return self
 
+    def invert(self, enabled=True):
+        """Invert the final screen when rendered."""
+        self.inverted = enabled
+        return self
+
     def box_centered(self, center, size, **kwargs):
         """Same as box(), but `center` is the box's center point and `size`
         is (width, height)."""
@@ -145,9 +151,15 @@ class ScreenBuilder:
         return self
 
     def render(self, final_size=FINAL_SIZE):
-        """Rotate into the panel's native portrait orientation. Returns a
-        PIL Image — call .save(path) on the result."""
-        return to_panel_orientation(self.image, final_size=final_size)
+        """Rotate into the panel's native portrait orientation.
+        Applies inversion if enabled. Returns a PIL Image.
+        """
+        img = to_panel_orientation(self.image, final_size=final_size)
+
+        if self.inverted:
+            img = Image.eval(img, lambda pixel: 1 - pixel)
+
+        return img
 
 
 if __name__ == "__main__":
@@ -155,6 +167,7 @@ if __name__ == "__main__":
         .text("Booting...", (WIDTH // 2, HEIGHT // 2 - 10), font="abduction2002", size=53) \
         .text("Long Distance Tracker", (148, 95), font="Arial", size=18) \
         .line((20, 78, 276, 78)) \
+        .invert() \
         .render() \
         .save("./screens/system/boot.bmp")
 
