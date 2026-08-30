@@ -6,7 +6,7 @@ event = cal.next_event()
 
 make_countdown_screen(
     event,
-    number_font=("SevenSegment", 92),
+    number_font=("2k12", 92),
     name_font=("default", 28),
     tiny_font=("default", 14),
     gap=5,
