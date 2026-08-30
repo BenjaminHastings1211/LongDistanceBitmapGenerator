@@ -23,6 +23,7 @@ def make_countdown_screen(
     tiny_font=("default", 14),
     gap=10,
     margin=8,
+    invert=False
 ):
     """
     Build a countdown screen from a `next_event()`-style dict (with
@@ -81,6 +82,8 @@ def make_countdown_screen(
         builder.text(text, (w / 2, y + line_h / 2), font=font_name, size=size, max_width=max_width)
         y += line_h + gap
 
+    if invert:
+        builder = builder.invert();
     return builder.render()
 
 

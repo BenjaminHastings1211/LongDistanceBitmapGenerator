@@ -71,6 +71,23 @@ def _color(value, when_true):
     return value
 
 
+def _scale_to_fit(img: Image.Image, size) -> Image.Image:
+    """Scale `img` evenly (aspect ratio preserved) so it fits within `size`
+    (max_width, max_height) — shrinks or grows, whichever the box calls for.
+
+    Resizing a bilevel ("1" mode) image directly aliases badly since there's
+    no interpolation between black/white, so scale in grayscale and
+    re-threshold back down afterwards.
+    """
+    max_w, max_h = size
+    scale = min(max_w / img.width, max_h / img.height)
+    new_size = (max(1, round(img.width * scale)), max(1, round(img.height * scale)))
+
+    if img.mode == "1":
+        return img.convert("L").resize(new_size, Image.LANCZOS).convert("1")
+    return img.resize(new_size, Image.LANCZOS)
+
+
 class ScreenBuilder:
     def __init__(self, canvas_size=TEXT_CANVAS_SIZE, background=1):
         self.canvas_size = canvas_size
@@ -120,6 +137,43 @@ class ScreenBuilder:
                 break
             size -= step
         return font_obj
+
+    def bmp(self, path, pos, anchor="topleft", size=None):
+        """
+        Paste a single-channel .bmp (mode "1" bilevel or "L" grayscale) onto
+        the canvas. Rejects RGB/RGBA/palette bmps — this panel is 1-bit, and
+        silently flattening a color image tends to produce garbage rather
+        than what you meant.
+
+        `pos` is placed per `anchor`: "topleft" (default) puts `pos` at the
+        image's top-left corner, "center" centers the image on `pos`.
+
+        Pass `size` as (max_width, max_height) to scale the image evenly
+        (aspect ratio preserved) until it fits within that box, before
+        placing it. Omit it to paste at native resolution.
+        """
+        img = Image.open(path)
+        if img.format != "BMP":
+            raise ValueError(f"{path}: expected a .bmp file, got format '{img.format}'")
+        if img.mode not in ("1", "L"):
+            raise ValueError(
+                f"{path}: expected a single-channel bmp (mode '1' or 'L'), got mode '{img.mode}'"
+            )
+
+        if size is not None:
+            img = _scale_to_fit(img, size)
+        if img.mode != "1":
+            img = img.convert("1")
+
+        x, y = pos
+        if anchor == "center":
+            x -= img.width / 2
+            y -= img.height / 2
+        elif anchor != "topleft":
+            raise ValueError(f"bmp(): unknown anchor '{anchor}', expected 'topleft' or 'center'")
+
+        self.image.paste(img, (round(x), round(y)))
+        return self
 
     def box(self, xy, outline=True, fill=False, width=1):
         """xy is (x0, y0, x1, y1) corners. outline/fill accept True (black),
@@ -171,10 +225,9 @@ if __name__ == "__main__":
         .render() \
         .save("./screens/system/boot.bmp")
 
-    # ScreenBuilder() \
-    #     .text("Error", (WIDTH // 2, (HEIGHT // 2) - 25), font="BlueScreen", size=72) \
-    #     .text("Please reboot", (WIDTH // 2, (HEIGHT // 2) + 25), font="default", size=24) \
-    #     .render() \
-    #     .save("./screens/system/error.bmp")
-
-    print("saved example screen to ./screens/system/_builder_example.bmp")
+    ScreenBuilder() \
+        .text("Error", (WIDTH // 2, (HEIGHT // 2) - 25), font="BlueScreen", size=72) \
+        .text("Please reboot", (WIDTH // 2, (HEIGHT // 2) + 25), font="default", size=24) \
+        .invert() \
+        .render() \
+        .save("./screens/system/error.bmp")
