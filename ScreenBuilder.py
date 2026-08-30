@@ -221,13 +221,11 @@ if __name__ == "__main__":
         .text("Booting...", (WIDTH // 2, HEIGHT // 2 - 10), font="abduction2002", size=53) \
         .text("Long Distance Tracker", (148, 95), font="Arial", size=18) \
         .line((20, 78, 276, 78)) \
-        .invert() \
         .render() \
         .save("./screens/system/boot.bmp")
 
     ScreenBuilder() \
         .text("Error", (WIDTH // 2, (HEIGHT // 2) - 25), font="BlueScreen", size=72) \
         .text("Please reboot", (WIDTH // 2, (HEIGHT // 2) + 25), font="default", size=24) \
-        .invert() \
         .render() \
         .save("./screens/system/error.bmp")

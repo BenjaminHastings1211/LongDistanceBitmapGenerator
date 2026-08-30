@@ -85,7 +85,7 @@ def make_provisioning_screen(
         builder.text(line, (text_x, y), font=body_name, size=body_size, anchor="la")
         y += builder.measure(line, font=body_name, size=body_size)[1] + LINE_GAP
 
-    return builder.invert().render()
+    return builder.render()
 
 
 if __name__ == "__main__":

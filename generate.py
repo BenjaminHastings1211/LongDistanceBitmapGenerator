@@ -11,5 +11,5 @@ make_countdown_screen(
     tiny_font=("default", 14),
     gap=10,
     margin=8,
-    invert=True
+    invert=False
 ).save(f"./screens/main/pacific.bmp")
