@@ -25,26 +25,6 @@ def make_countdown_screen(
     margin=8,
     invert=False
 ):
-    """
-    Build a countdown screen from a `next_event()`-style dict (with
-    `duration`, `ongoing`, and `name` keys), or a "nothing planned"
-    placeholder if `event` is None.
-
-    `number_font`/`name_font`/`tiny_font` are (font_name, size) tuples —
-    `font_name` is looked up as `./fonts/{font_name}.ttf` by ScreenBuilder.
-
-    Layout for an upcoming event, top to bottom:
-      1. Big day count (the pop) — e.g. "8"
-      2. Small "days till" — smallest text on screen
-      3. Event name, smaller than the number but bigger than #2
-
-    Layout for an ongoing event:
-      1. Big day count
-      2. One small reminder line — "days left with you"
-
-    Returns the final panel-ready image (portrait, rotated) — no extra step
-    needed from the caller beyond .save(path).
-    """
     builder = ScreenBuilder()
     w, h = builder.canvas_size
     max_width = w - 2 * margin
@@ -54,36 +34,72 @@ def make_countdown_screen(
             ("No trips planned", number_font),
             ("Plan something!", tiny_font),
         ]
+    elif event.get("ongoing"):
+        lines = [
+            (str(_days_remaining(event["duration"])), number_font),
+            ("days left with you", tiny_font),
+        ]
     else:
-        days = _days_remaining(event["duration"])
-        number_text = str(days)
-        if event.get("ongoing"):
-            lines = [
-                (number_text, number_font),
-                ("days left with you", tiny_font),
-            ]
-        else:
-            lines = [
-                (number_text, number_font),
-                ("days till", tiny_font),
-                (event["name"], name_font),
-            ]
+        days = str(_days_remaining(event["duration"]))
 
-    # Measure each line up front (shrinking to fit the width if needed) so
-    # the whole block can be centered vertically before drawing anything.
-    heights = [builder.measure(text, font=font_name, size=size, max_width=max_width)[1]
-               for text, (font_name, size) in lines]
+        number_w, number_h = builder.measure(
+            days, font=number_font[0], size=number_font[1]
+        )
+        till_w, till_h = builder.measure(
+            "days till", font=tiny_font[0], size=tiny_font[1]
+        )
+
+        total_w = number_w + gap + till_w
+        x = (w - total_w) / 2
+        bottom_y = h * 0.67
+
+        builder.text(
+            days,
+            (x + number_w / 2, bottom_y - number_h / 2),
+            font=number_font[0],
+            size=number_font[1],
+        )
+        builder.text(
+            "days till",
+            (x + number_w + gap + till_w / 2, bottom_y - till_h / 2),
+            font=tiny_font[0],
+            size=tiny_font[1],
+        )
+
+        builder.text(
+            event["name"],
+            (w / 2, h * 0.82),
+            font=name_font[0],
+            size=name_font[1],
+            max_width=max_width,
+        )
+
+        if invert:
+            builder = builder.invert()
+        return builder.render()
+
+    heights = [
+        builder.measure(text, font=font_name, size=size, max_width=max_width)[1]
+        for text, (font_name, size) in lines
+    ]
+
     block_h = sum(heights) + gap * (len(lines) - 1)
-    # Center the block, then nudge up slightly per your call.
     top_y = (h - block_h) / 2 - h * 0.03
 
     y = top_y
     for (text, (font_name, size)), line_h in zip(lines, heights):
-        builder.text(text, (w / 2, y + line_h / 2), font=font_name, size=size, max_width=max_width)
+        builder.text(
+            text,
+            (w / 2, y + line_h / 2),
+            font=font_name,
+            size=size,
+            max_width=max_width,
+        )
         y += line_h + gap
 
     if invert:
-        builder = builder.invert();
+        builder = builder.invert()
+
     return builder.render()
 
 
