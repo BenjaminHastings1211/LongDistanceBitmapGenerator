@@ -1,79 +1,13 @@
 """
 E-paper countdown screen generator.
 
-Display panel: 128 x 296 (portrait, width x height) — e.g. a typical
-2.9" e-ink strip. Content is authored "longways" (296 x 128, landscape)
-because it's much easier to lay out readable text that way, then
-converted into the panel's native portrait orientation.
+Built on top of ScreenBuilder — this file only decides *what* the countdown
+screen says and how its lines stack, not how text/fonts/rotation work.
 """
 
 import math
-from PIL import Image, ImageDraw, ImageFont
 
-# ---------------------------------------------------------------------------
-# Panel geometry
-# ---------------------------------------------------------------------------
-FINAL_SIZE = (128, 296)        # panel's native (w, h) — portrait, longways
-TEXT_CANVAS_SIZE = (296, 128)  # authoring canvas (w, h) — landscape
-
-FONT_BOLD_CANDIDATES = [
-    "/System/Library/Fonts/HelveticaNeue.ttc",              # macOS built-in
-    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",     # macOS built-in
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",  # Linux fallback
-]
-FONT_REG_CANDIDATES = [
-    "/System/Library/Fonts/HelveticaNeue.ttc",              # macOS built-in
-    "/System/Library/Fonts/Supplemental/Arial.ttf",          # macOS built-in
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",       # Linux fallback
-]
-
-
-def load_font(size, bold=True):
-    candidates = FONT_BOLD_CANDIDATES if bold else FONT_REG_CANDIDATES
-    for path in candidates:
-        try:
-            if path.endswith(".ttc"):
-                # HelveticaNeue.ttc is a collection; index 1 is Bold,
-                # index 0 is Regular on macOS's system copy.
-                return ImageFont.truetype(path, size, index=1 if bold else 0)
-            return ImageFont.truetype(path, size)
-        except OSError:
-            continue
-    return ImageFont.load_default()
-
-
-def to_panel_orientation(img: Image.Image, final_size=FINAL_SIZE) -> Image.Image:
-    """
-    Convert a landscape-authored image (drawn right-reading, normal
-    orientation) into the panel's native portrait orientation.
-
-    Plain `rotate(90, expand=True)` is what makes the text come out
-    readable in a normal viewer/preview. Some e-paper controllers write
-    their framebuffer mirrored though, so if text shows up backwards on
-    your actual hardware, call this with mirror=True to pre-compensate.
-    """
-    img = img.convert("1") if img.mode != "1" else img
-
-    img = img.transpose(Image.FLIP_LEFT_RIGHT)
-
-    rotated = img.rotate(90, expand=True)
-
-    if rotated.size != final_size:
-        rotated = rotated.resize(final_size)
-
-    return rotated
-
-
-def _text_size(draw, text, font):
-    left, top, right, bottom = draw.textbbox((0, 0), text, font=font)
-    return right - left, bottom - top, left, top
-
-
-def _draw_centered(draw, text, font, canvas_w, y, fill=0):
-    w, h, left, top = _text_size(draw, text, font)
-    x = (canvas_w - w) / 2 - left
-    draw.text((x, y - top), text, font=font, fill=fill)
-    return h
+from ScreenBuilder import ScreenBuilder
 
 
 def _days_remaining(duration) -> int:
@@ -82,86 +16,72 @@ def _days_remaining(duration) -> int:
     return max(0, math.ceil(total_seconds / 86400))
 
 
-def _fit_font(draw, text, w, start_size, bold, margin=8, min_size=8, step=2):
-    """Shrink font size until `text` fits within `w - 2*margin`."""
-    size = start_size
-    font = load_font(size, bold=bold)
-    while size > min_size:
-        font = load_font(size, bold=bold)
-        tw, _, _, _ = _text_size(draw, text, font)
-        if tw <= w - 2 * margin:
-            break
-        size -= step
-    return font
-
-
 def make_countdown_screen(
     event: dict | None,
-    canvas_size=TEXT_CANVAS_SIZE,
-    number_size=64,
-    name_size=28,
-    tiny_size=14,
+    number_font=("abduction2002", 64),
+    name_font=("abduction2002", 28),
+    tiny_font=("Arial", 14),
     gap=10,
-) -> Image.Image:
+    margin=8,
+):
     """
     Build a countdown screen from a `next_event()`-style dict (with
     `duration`, `ongoing`, and `name` keys), or a "nothing planned"
     placeholder if `event` is None.
 
+    `number_font`/`name_font`/`tiny_font` are (font_name, size) tuples —
+    `font_name` is looked up as `./fonts/{font_name}.ttf` by ScreenBuilder.
+
     Layout for an upcoming event, top to bottom:
-      1. Big bold day count (the pop) — e.g. "8"
-      2. Small unbolded "days till" — smallest text on screen
-      3. Bold event name, smaller than the number but bigger than #2
+      1. Big day count (the pop) — e.g. "8"
+      2. Small "days till" — smallest text on screen
+      3. Event name, smaller than the number but bigger than #2
 
     Layout for an ongoing event:
-      1. Big bold day count
-      2. One small unbolded reminder line — "days left with you"
+      1. Big day count
+      2. One small reminder line — "days left with you"
 
-    Returns the final panel-ready image (portrait, rotated via
-    `to_panel_orientation`) — no extra step needed from the caller.
+    Returns the final panel-ready image (portrait, rotated) — no extra step
+    needed from the caller beyond .save(path).
     """
-    w, h = canvas_size
-    img = Image.new("1", canvas_size, color=1)  # 1 = white background
-    draw = ImageDraw.Draw(img)
+    builder = ScreenBuilder()
+    w, h = builder.canvas_size
+    max_width = w - 2 * margin
 
     if event is None:
         lines = [
-            ("No trips planned", number_size, True),
-            ("Plan something!", tiny_size, False),
+            ("No trips planned", number_font),
+            ("Plan something!", tiny_font),
         ]
     else:
         days = _days_remaining(event["duration"])
         number_text = str(days)
         if event.get("ongoing"):
             lines = [
-                (number_text, number_size, True),
-                ("days left with you", tiny_size, False),
+                (number_text, number_font),
+                ("days left with you", tiny_font),
             ]
         else:
             lines = [
-                (number_text, number_size, True),
-                ("days till", tiny_size, False),
-                (event["name"], name_size, True),
+                (number_text, number_font),
+                ("days till", tiny_font),
+                (event["name"], name_font),
             ]
 
-    # Resolve fonts (shrinking any line that doesn't fit the width) and
-    # measure each line's height up front so we can center the block.
-    rendered = []
-    for text, size, bold in lines:
-        font = _fit_font(draw, text, w, size, bold)
-        _, line_h, _, _ = _text_size(draw, text, font)
-        rendered.append((text, font, line_h))
-
-    block_h = sum(line_h for _, _, line_h in rendered) + gap * (len(rendered) - 1)
+    # Measure each line up front (shrinking to fit the width if needed) so
+    # the whole block can be centered vertically before drawing anything.
+    heights = [builder.measure(text, font=font_name, size=size, max_width=max_width)[1]
+               for text, (font_name, size) in lines]
+    block_h = sum(heights) + gap * (len(lines) - 1)
     # Center the block, then nudge up slightly per your call.
     top_y = (h - block_h) / 2 - h * 0.03
 
     y = top_y
-    for text, font, line_h in rendered:
-        _draw_centered(draw, text, font, w, y)
+    for (text, (font_name, size)), line_h in zip(lines, heights):
+        builder.text(text, (w / 2, y + line_h / 2), font=font_name, size=size, max_width=max_width)
         y += line_h + gap
 
-    return to_panel_orientation(img, final_size=FINAL_SIZE)
+    return builder.render()
 
 
 if __name__ == "__main__":
@@ -180,9 +100,9 @@ if __name__ == "__main__":
 
     for name, event in [
         ("ongoing", example_ongoing),
-        ("upcoming", example_upcoming),
-        ("none", None),
+        # ("upcoming", example_upcoming),
+        # ("none", None),
     ]:
-        make_countdown_screen(event).save(f"./server_side/countdown_{name}.bmp")
+        make_countdown_screen(event, number_font=("Arasdasial", 72)).save(f"./screens/main/pacific.bmp")
 
     print("saved example screens")
