@@ -7,7 +7,7 @@ on:
 
   schedule:
     # Run every day at 12:00 UTC
-    - cron: "0 12 * * *"
+    - cron: "0 0,12 * * *"
 
   # Lets you manually run it from GitHub
   workflow_dispatch:
