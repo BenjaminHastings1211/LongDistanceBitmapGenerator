@@ -12,11 +12,11 @@ Example:
         .text("v1.0", (148, 100), font="Arial", size=14) \\
         .line((20, 80, 276, 80)) \\
         .box((10, 10, 286, 118), fill=False, width=2) \\
-        .render() \\
         .save("boot.bmp")
 """
 
 from PIL import Image, ImageDraw, ImageFont
+import hashlib
 
 # ---------------------------------------------------------------------------
 # Panel geometry
@@ -204,16 +204,22 @@ class ScreenBuilder:
         self.draw.line(xy, fill=_color(fill, 0), width=width)
         return self
 
-    def render(self, final_size=FINAL_SIZE):
-        """Rotate into the panel's native portrait orientation.
-        Applies inversion if enabled. Returns a PIL Image.
-        """
-        img = to_panel_orientation(self.image, final_size=final_size)
+
+    def save(self, path, **kwargs):
+        img = to_panel_orientation(self.image, final_size=FINAL_SIZE)
 
         if self.inverted:
             img = Image.eval(img, lambda pixel: 1 - pixel)
 
-        return img
+        img.save(path, **kwargs)
+
+        screen_id = hashlib.sha256(img.tobytes()).digest()[0]
+
+        id_path = path.rsplit(".", 1)[0] + ".id"
+        with open(id_path, "w") as f:
+            f.write(str(screen_id))
+
+        return self
 
 
 if __name__ == "__main__":
@@ -221,11 +227,9 @@ if __name__ == "__main__":
         .text("Booting...", (WIDTH // 2, HEIGHT // 2 - 10), font="abduction2002", size=53) \
         .text("Long Distance Tracker", (148, 95), font="Arial", size=18) \
         .line((20, 78, 276, 78)) \
-        .render() \
         .save("./screens/system/boot.bmp")
 
     ScreenBuilder() \
         .text("Error", (WIDTH // 2, (HEIGHT // 2) - 25), font="BlueScreen", size=72) \
         .text("Please reboot", (WIDTH // 2, (HEIGHT // 2) + 25), font="default", size=24) \
-        .render() \
         .save("./screens/system/error.bmp")

@@ -76,7 +76,7 @@ def make_countdown_screen(
 
         if invert:
             builder = builder.invert()
-        return builder.render()
+        return builder
 
     heights = [
         builder.measure(text, font=font_name, size=size, max_width=max_width)[1]
@@ -100,7 +100,7 @@ def make_countdown_screen(
     if invert:
         builder = builder.invert()
 
-    return builder.render()
+    return builder
 
 
 if __name__ == "__main__":
