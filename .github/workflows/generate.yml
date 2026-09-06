@@ -21,6 +21,9 @@ jobs:
   generate:
     runs-on: ubuntu-latest
 
+    env:
+      CALENDER_URL: ${{ vars.CALENDER_URL }}
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
