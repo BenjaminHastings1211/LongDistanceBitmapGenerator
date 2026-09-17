@@ -21,17 +21,16 @@ DEVICE_NAME = "LongDistanceTracker"
 DEVICE_PASSWORD = "password"
 
 MEDIA_QR_PATH = "./media/qr.bmp"
-OUTPUT_PATH = "./screens/system/qr.bmp"
 
-MARGIN = 8
-GAP = 12
+MARGIN = 5
+GAP = 1
 
 HEADING = "Setup Mode"
-BODY = "Scan to connect, then follow the prompts to finish setup."
+BODY = "If the setup page doesn’t open automatically, open your browser and try visiting a website."
 
-HEADING_FONT = ("Arial Bold", 22)
-BODY_FONT = ("default", 14)
-LINE_GAP = 4
+HEADING_FONT = ("Retrotech", 34)
+BODY_FONT = ("default", 15)
+LINE_GAP = 2
 
 
 def _wrap_text(builder, text, font, size, max_width):
@@ -75,7 +74,7 @@ def make_provisioning_screen(
     heading_name, heading_size = heading_font
     body_name, body_size = body_font
 
-    y = MARGIN + 6
+    y = MARGIN + 2
     builder.text(heading, (text_x, y), font=heading_name, size=heading_size,
                  anchor="la", max_width=text_width)
     y += builder.measure(heading, font=heading_name, size=heading_size,

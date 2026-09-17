@@ -5,10 +5,37 @@ Built on top of ScreenBuilder — this file only decides *what* the countdown
 screen says and how its lines stack, not how text/fonts/rotation work.
 """
 
-import math
+import math, random
 
 from ScreenBuilder import ScreenBuilder
 
+ONGOING_MESSAGES = [
+    # Exclamations
+    "Hooray!",
+    "Yay!",
+    "Woohoo!",
+    "Yes!",
+    "At last!",
+    "Woo!",
+    "Yippee!",
+    "Wahoo!",
+    "Yesss!",
+    "Woot!",
+    "Amazing!",
+    "Awesome!",
+    # Together / reunion
+    "Together!",
+    "You're here!",
+    "Finally!",
+    "Here now",
+    "Back together",
+    "With you now",
+    "Reunion time",
+    "You made it",
+    "Together again",
+    "Side by side",
+    "All together",
+]
 
 def _days_remaining(duration) -> int:
     """Round a timedelta up to whole days (8 days 1 hour -> 9)."""
@@ -19,6 +46,7 @@ def _days_remaining(duration) -> int:
 def make_countdown_screen(
     event: dict | None,
     number_font=("default", 64),
+    big_font=("YellowBanana", 64),
     name_font=("default", 28),
     tiny_font=("default", 14),
     gap=10,
@@ -31,13 +59,13 @@ def make_countdown_screen(
 
     if event is None:
         lines = [
-            ("No trips planned", number_font),
+            ("No trips planned", big_font),
             ("Plan something!", tiny_font),
         ]
     elif event.get("ongoing"):
         lines = [
-            (str(_days_remaining(event["duration"])), number_font),
-            ("days left with you", tiny_font),
+            (random.choice(ONGOING_MESSAGES), big_font),
+            (f"{_days_remaining(event['duration'])} days left", tiny_font),
         ]
     else:
         days = str(_days_remaining(event["duration"]))

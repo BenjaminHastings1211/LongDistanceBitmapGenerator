@@ -206,7 +206,8 @@ class ScreenBuilder:
 
 
     def save(self, path, **kwargs):
-        img = to_panel_orientation(self.image, final_size=FINAL_SIZE)
+        img = self.image
+        # img = to_panel_orientation(self.image, final_size=FINAL_SIZE)
 
         if self.inverted:
             img = Image.eval(img, lambda pixel: 1 - pixel)
@@ -225,11 +226,13 @@ class ScreenBuilder:
 if __name__ == "__main__":
     ScreenBuilder() \
         .text("Booting...", (WIDTH // 2, HEIGHT // 2 - 10), font="abduction2002", size=53) \
-        .text("Long Distance Tracker", (148, 95), font="Arial", size=18) \
+        .text("Long Distance Tracker", (148, 95), font="Retrotech", size=22) \
         .line((20, 78, 276, 78)) \
         .save("./screens/system/boot.bmp")
 
     ScreenBuilder() \
-        .text("Error", (WIDTH // 2, (HEIGHT // 2) - 25), font="BlueScreen", size=72) \
-        .text("Please reboot", (WIDTH // 2, (HEIGHT // 2) + 25), font="default", size=24) \
+        .text("ERROR", (WIDTH // 2, 38), font="BlueScreen", size=62) \
+        .line((28, 68, 268, 68), width=1) \
+        .text("Something went wrong.", (WIDTH // 2, 82), font="Retrotech", size=16) \
+        .text("Please reboot.", (WIDTH // 2, 100), font="Retrotech", size=16) \
         .save("./screens/system/error.bmp")
