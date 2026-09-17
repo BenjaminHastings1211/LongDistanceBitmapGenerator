@@ -3,3 +3,4 @@ ics==0.7.3
 python-dotenv
 requests
 arrow
+qrcode
