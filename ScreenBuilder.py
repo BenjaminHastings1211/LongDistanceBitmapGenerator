@@ -206,8 +206,8 @@ class ScreenBuilder:
 
 
     def save(self, path, **kwargs):
-        img = self.image
-        # img = to_panel_orientation(self.image, final_size=FINAL_SIZE)
+        # img = self.image
+        img = to_panel_orientation(self.image, final_size=FINAL_SIZE)
 
         if self.inverted:
             img = Image.eval(img, lambda pixel: 1 - pixel)
