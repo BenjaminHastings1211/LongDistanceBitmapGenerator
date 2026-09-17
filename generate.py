@@ -30,8 +30,7 @@ for tz in timezones:
 
 # Wifi Screen
 
-make_provisioning_screen(
-    ).save("./screens/system/qr.bmp")
+make_provisioning_screen().save("./screens/system/qr.bmp")
 
 # Boot Sreen
 

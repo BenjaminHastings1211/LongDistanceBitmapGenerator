@@ -1,4 +1,4 @@
-"""
+""""
 Builds the screen shown on the panel while the device is in WiFi
 provisioning mode: a QR code (joins the device's own setup AP) on the left,
 instructions on the right.
@@ -11,7 +11,8 @@ Two-step pipeline, same split as BitmapGenerator.py building on ScreenBuilder:
      during system_reset() and shows via qr_screen().
 """
 
-from QrGenerator import create_wifi_qr
+from PIL import Image
+
 from ScreenBuilder import ScreenBuilder, WIDTH, HEIGHT
 
 # Must match the embedded project's Kconfig defaults (main/Kconfig.projbuild:
@@ -59,16 +60,17 @@ def make_provisioning_screen(
     heading_font=HEADING_FONT,
     body_font=BODY_FONT,
 ):
-    """Generate the QR code at exactly the size it'll be shown at (avoids a
-    second resize pass over the code, which risks blurring/dithering it into
-    something a phone camera won't scan), then compose the final screen."""
-    qr_size = HEIGHT - 2 * MARGIN
-    create_wifi_qr(ssid, password, qr_size, MEDIA_QR_PATH)
+    """Compose the final screen from the QR bitmap already sitting at
+    MEDIA_QR_PATH (generated ahead of time at the exact size it'll be shown
+    at, avoiding a resize pass that risks blurring/dithering it into
+    something a phone camera won't scan)."""
+    with Image.open(MEDIA_QR_PATH) as qr_image:
+        qr_width, qr_height = qr_image.size
 
     builder = ScreenBuilder()
     builder.bmp(MEDIA_QR_PATH, (MARGIN, MARGIN))
 
-    text_x = MARGIN * 2 + qr_size + GAP
+    text_x = MARGIN * 2 + qr_width + GAP
     text_width = WIDTH - text_x - MARGIN
 
     heading_name, heading_size = heading_font
